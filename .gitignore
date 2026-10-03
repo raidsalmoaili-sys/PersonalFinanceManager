@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+.idea/
+
+## Node / Tailwind
+node_modules/
+
+## Local secrets (never publish)
+appsettings.Development.json
+appsettings.Local.json
+.env
+
+## Private working notes & design files
+MoreFile/

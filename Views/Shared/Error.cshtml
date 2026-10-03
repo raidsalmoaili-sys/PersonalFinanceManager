@@ -1,0 +1,19 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "خطأ";
+}
+
+<div class="card p-8 max-w-lg mx-auto text-center">
+    <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color:var(--danger)22;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h1 class="text-xl font-bold mb-2">حدث خطأ غير متوقع</h1>
+    <p class="text-sm mb-6" style="color:var(--muted);">نعتذر، حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى لاحقاً.</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="text-xs mb-6" style="color:var(--muted);">رقم الطلب: <code>@Model.RequestId</code></p>
+    }
+
+    <a href="@Url.Action("Index", "Home")" class="btn-primary inline-block px-6 py-2.5 text-sm font-semibold">العودة للرئيسية</a>
+</div>

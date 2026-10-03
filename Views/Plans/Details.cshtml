@@ -1,0 +1,420 @@
+@model PlanDetailsViewModel
+@{
+    var visiblePayments = Model.Payments.Take(12).ToList();
+    var remainingPayments = Model.Payments.Skip(12).ToList();
+    var isDebtPlan = Model.Type == PlanType.Debt;
+    var paymentsGridCols = isDebtPlan ? "56px 1fr .8fr 1.4fr 210px" : "56px 1.1fr .9fr 1.6fr 110px";
+}
+@functions {
+    string PurposeColor(PlanLogPurpose purpose) => purpose switch
+    {
+        PlanLogPurpose.AdvancePayment => "#8B5CF6",
+        PlanLogPurpose.Reserved => "#F59E0B",
+        _ => Model.ColorHex
+    };
+}
+
+<div class="fade-in" style="display:flex; flex-direction:column; gap:18px;">
+
+    @if (Model.IsPaused)
+    {
+        <div class="card" style="padding:14px 18px; display:flex; align-items:center; gap:10px; border-color:var(--muted);">
+            <span style="font-size:16px;">⏸</span>
+            <div style="font-size:13px; font-weight:700; color:var(--ink2);">هذه الخطة موقوفة مؤقتًا — لا تُحتسب ضمن إجماليات لوحة التحكم والرسوم البيانية. فعّلها من المفتاح أعلى الصفحة.</div>
+        </div>
+    }
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px;">
+        <div class="card" style="padding:18px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">الهدف الإجمالي</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:28px; font-weight:800; margin-top:8px;">@Model.Target.ToString("N0")</div>
+            <div style="font-size:12px; color:var(--muted); font-weight:600; margin-top:4px;">@Model.TargetNote</div>
+        </div>
+        <div class="card" style="padding:18px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">@Model.DoneLabel</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:28px; font-weight:800; margin-top:8px; color:@Model.ColorHex;">@Model.Achieved.ToString("N0")</div>
+            <div style="font-size:12px; color:var(--muted); font-weight:600; margin-top:4px;">@Model.PercentComplete% من الهدف</div>
+        </div>
+        <div class="card" style="padding:18px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">المبلغ المتبقي</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:28px; font-weight:800; margin-top:8px;">@Model.Remaining.ToString("N0")</div>
+            <div style="font-size:12px; color:var(--muted); font-weight:600; margin-top:4px;">متوسط الدفعة @Model.AveragePayment.ToString("N0") ريال</div>
+        </div>
+        <div class="card" style="padding:18px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">@Model.CountLabel</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:28px; font-weight:800; margin-top:8px;">@Model.CountValue</div>
+            <div class="progress-track" style="height:8px; overflow:hidden; margin-top:10px;"><div style="height:100%; width:@Model.CountWidthPercent; background-color:@Model.ColorHex; border-radius:999px;"></div></div>
+        </div>
+        @if (Model.Type == PlanType.Debt)
+        {
+            <div class="card" style="padding:18px;">
+                <div style="font-size:13px; color:var(--muted); font-weight:600;">المبلغ المحجوز</div>
+                <div style="font-family:'Cairo',sans-serif; font-size:28px; font-weight:800; margin-top:8px; color:#F59E0B;">@Model.Reserved.ToString("N0")</div>
+                <div style="font-size:12px; color:var(--muted); font-weight:600; margin-top:4px;">محجوز لحين تحويله لسداد فعلي — لا يخصم من الدين بعد</div>
+            </div>
+        }
+    </div>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px;" class="max-lg:!grid-cols-1">
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:14px; min-width:0;">
+            <div style="font-size:15px; font-weight:700;">@Model.FormTitle</div>
+            <form id="addPaymentForm" asp-controller="Plans" asp-action="AddPayment" asp-route-id="@Model.Id" method="post" novalidate data-plan-form>
+                @Html.AntiForgeryToken()
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
+                    <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                        المبلغ (ريال)
+                        <input asp-for="NewPayment.Amount" type="number" step="0.01" min="0.01" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                        التاريخ
+                        <input asp-for="NewPayment.PaymentDate" type="date" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                        ملاحظة
+                        <input asp-for="NewPayment.Note" placeholder="@Model.NotePlaceholder" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; outline:none;" />
+                    </label>
+                </div>
+                @if (Model.Type == PlanType.Debt)
+                {
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                        <div style="font-size:12.5px; font-weight:600; color:var(--ink2);">نوع الدفعة</div>
+                        <div style="display:flex; gap:4px; padding:4px; background-color:var(--chip); border-radius:11px;">
+                            <label style="flex:1;">
+                                <input type="radio" asp-for="NewPayment.Purpose" value="@PlanLogPurpose.BillPayment" class="hidden peer" />
+                                <span class="plan-type-option" data-color="@Model.ColorHex" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--muted);">سداد الفاتورة</span>
+                            </label>
+                            <label style="flex:1;">
+                                <input type="radio" asp-for="NewPayment.Purpose" value="@PlanLogPurpose.AdvancePayment" class="hidden peer" />
+                                <span class="plan-type-option" data-color="#8B5CF6" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--muted);">سداد السلفة</span>
+                            </label>
+                            <label style="flex:1;">
+                                <input type="radio" asp-for="NewPayment.Purpose" value="@PlanLogPurpose.Reserved" class="hidden peer" />
+                                <span class="plan-type-option" data-color="#F59E0B" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--muted);">إدخال / حجز مستقبلي</span>
+                            </label>
+                        </div>
+                        <div style="font-size:11.5px; color:var(--muted);">"إدخال / حجز مستقبلي" لا يخصم من الدين إلا بعد ما تحوّله لاحقًا لسداد فعلي.</div>
+                    </div>
+                }
+                <span asp-validation-for="NewPayment.Amount" class="text-xs" style="color:var(--danger);"></span>
+            </form>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="submit" form="addPaymentForm" style="padding:12px 20px; border:0; border-radius:10px; background-color:@Model.ColorHex; color:#fff; font-size:14px; font-weight:800; cursor:pointer;">@Model.SaveButtonLabel</button>
+                <button type="button" id="openEditPlanBtn" style="padding:12px 16px; border:1px solid var(--line); border-radius:10px; background-color:var(--panel); color:var(--ink2); font-size:13px; font-weight:700; cursor:pointer;">تعديل الخطة</button>
+                <form asp-controller="Plans" asp-action="Delete" asp-route-id="@Model.Id" method="post" style="margin-right:auto;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" data-confirm-delete="تأكيد حذف الخطة؟" style="padding:12px 16px; border:0; border-radius:10px; background-color:rgba(239,68,68,.12); color:var(--danger); font-size:13px; font-weight:700; cursor:pointer;">حذف الخطة</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:10px; align-items:center; min-width:0;">
+            <div style="align-self:flex-start;">
+                <div style="font-size:15px; font-weight:700;">مقياس التقدّم</div>
+                <div style="font-size:12.5px; color:var(--muted); margin-top:3px;">@Model.GaugeSub</div>
+            </div>
+            <div style="position:relative; width:200px; height:200px; border-radius:50%; background:@Model.GaugeGradientCss; margin-top:4px;">
+                <div style="position:absolute; inset:18%; border-radius:50%; background-color:var(--panel); display:grid; place-items:center; text-align:center;">
+                    <div>
+                        <div style="font-family:'Cairo',sans-serif; font-size:34px; font-weight:800; line-height:1; color:@Model.ColorHex;">@Model.PercentComplete%</div>
+                        <div style="font-size:12px; color:var(--muted); font-weight:600; margin-top:6px;">@Model.GaugeCaption</div>
+                        <div style="font-size:12px; color:var(--ink2); font-weight:700; margin-top:2px;">@Model.Remaining.ToString("N0") ريال متبقٍ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Slots > 0)
+    {
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:15px; font-weight:700;">خريطة الدفعات (@Model.Slots)</div>
+                    <div style="font-size:12.5px; color:var(--muted); margin-top:3px;">كل مربع يمثل دفعة واحدة، ويُضاء تلقائياً عند التسجيل</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; padding:6px 12px; border-radius:10px; background-color:var(--chip);">
+                    <span style="font-size:20px; font-weight:800; color:@Model.ColorHex;">@(Model.Slots - Model.FilledSlots)</span>
+                    <span style="font-size:12px; font-weight:600; color:var(--muted);">دفعة متبقية</span>
+                </div>
+                <div style="margin-right:auto; display:flex; align-items:center; gap:14px; font-size:12px; color:var(--muted); font-weight:600;">
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="width:11px; height:11px; border-radius:3px; background-color:@Model.ColorHex;"></span>مكتملة</span>
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="width:11px; height:11px; border-radius:3px; background-color:var(--chip);"></span>متبقية</span>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(12px,1fr)); gap:4px;">
+                @for (var i = 0; i < Model.Slots; i++)
+                {
+                    var filled = i < Model.FilledSlots;
+                    <div style="aspect-ratio:1; border-radius:3px; background-color:@(filled ? Model.ColorHex : "var(--chip)");"></div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="card" style="overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:18px;">
+            <div style="font-size:15px; font-weight:700;">@Model.TableTitle</div>
+            <div style="margin-right:auto; font-size:12.5px; color:var(--muted); font-weight:600;">إجمالي @Model.Payments.Count عملية</div>
+        </div>
+        <div style="display:flex; flex-direction:column;">
+            <div style="display:grid; grid-template-columns:@paymentsGridCols; gap:10px; padding:11px 18px; background-color:var(--chip); font-size:12px; font-weight:700; color:var(--muted);">
+                <div>#</div><div>التاريخ</div><div>المبلغ</div><div>ملاحظة</div><div style="text-align:left;">إجراءات</div>
+            </div>
+            @{ var rowIndex = Model.Payments.Count; }
+            @foreach (var r in visiblePayments)
+            {
+                <div style="display:grid; grid-template-columns:@paymentsGridCols; gap:10px; padding:13px 18px; border-top:1px solid var(--line); font-size:13.5px; align-items:center;">
+                    <div style="color:var(--muted); font-weight:700;">@rowIndex</div>
+                    <div style="font-weight:600;">@r.DateLabel</div>
+                    <div>
+                        <div style="font-weight:800; color:@Model.ColorHex;">@r.Amount.ToString("N0")</div>
+                        @if (isDebtPlan)
+                        {
+                            <span style="display:inline-block; margin-top:3px; padding:2px 7px; border-radius:6px; font-size:10.5px; font-weight:700; background-color:@(PurposeColor(r.Purpose))22; color:@PurposeColor(r.Purpose);">@r.PurposeLabel</span>
+                        }
+                    </div>
+                    <div style="color:var(--ink2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(r.Note ?? "—")</div>
+                    <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                        @if (r.Purpose == PlanLogPurpose.Reserved)
+                        {
+                            <form asp-controller="Plans" asp-action="TransferPayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" asp-route-target="@PlanLogPurpose.BillPayment" method="post" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" title="تحويل إلى سداد الفاتورة" style="padding:6px 9px; border:0; border-radius:8px; background-color:@(Model.ColorHex)22; color:@Model.ColorHex; font-size:11px; font-weight:700; cursor:pointer;">↦ فاتورة</button>
+                            </form>
+                            <form asp-controller="Plans" asp-action="TransferPayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" asp-route-target="@PlanLogPurpose.AdvancePayment" method="post" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" title="تحويل إلى سداد السلفة" style="padding:6px 9px; border:0; border-radius:8px; background-color:#8B5CF622; color:#8B5CF6; font-size:11px; font-weight:700; cursor:pointer;">↦ سلفة</button>
+                            </form>
+                        }
+                        <button type="button" class="edit-payment-btn" style="padding:6px 11px; border:1px solid var(--line); border-radius:8px; background-color:var(--panel); color:var(--ink2); font-size:12px; font-weight:700; cursor:pointer;"
+                                data-log-id="@r.Id" data-amount="@r.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-date="@r.PaymentDate.ToString("yyyy-MM-dd")" data-note="@r.Note" data-purpose="@((int)r.Purpose)">تعديل</button>
+                        <form asp-controller="Plans" asp-action="DeletePayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" method="post" class="inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" data-confirm-delete="تأكيد؟" style="padding:6px 11px; border:0; border-radius:8px; background-color:rgba(239,68,68,.12); color:var(--danger); font-size:12px; font-weight:700; cursor:pointer;">حذف</button>
+                        </form>
+                    </div>
+                </div>
+                rowIndex--;
+            }
+            @foreach (var r in remainingPayments)
+            {
+                <div class="extra-payment-row hidden" style="display:grid; grid-template-columns:@paymentsGridCols; gap:10px; padding:13px 18px; border-top:1px solid var(--line); font-size:13.5px; align-items:center;">
+                    <div style="color:var(--muted); font-weight:700;">@rowIndex</div>
+                    <div style="font-weight:600;">@r.DateLabel</div>
+                    <div>
+                        <div style="font-weight:800; color:@Model.ColorHex;">@r.Amount.ToString("N0")</div>
+                        @if (isDebtPlan)
+                        {
+                            <span style="display:inline-block; margin-top:3px; padding:2px 7px; border-radius:6px; font-size:10.5px; font-weight:700; background-color:@(PurposeColor(r.Purpose))22; color:@PurposeColor(r.Purpose);">@r.PurposeLabel</span>
+                        }
+                    </div>
+                    <div style="color:var(--ink2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(r.Note ?? "—")</div>
+                    <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                        @if (r.Purpose == PlanLogPurpose.Reserved)
+                        {
+                            <form asp-controller="Plans" asp-action="TransferPayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" asp-route-target="@PlanLogPurpose.BillPayment" method="post" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" title="تحويل إلى سداد الفاتورة" style="padding:6px 9px; border:0; border-radius:8px; background-color:@(Model.ColorHex)22; color:@Model.ColorHex; font-size:11px; font-weight:700; cursor:pointer;">↦ فاتورة</button>
+                            </form>
+                            <form asp-controller="Plans" asp-action="TransferPayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" asp-route-target="@PlanLogPurpose.AdvancePayment" method="post" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" title="تحويل إلى سداد السلفة" style="padding:6px 9px; border:0; border-radius:8px; background-color:#8B5CF622; color:#8B5CF6; font-size:11px; font-weight:700; cursor:pointer;">↦ سلفة</button>
+                            </form>
+                        }
+                        <button type="button" class="edit-payment-btn" style="padding:6px 11px; border:1px solid var(--line); border-radius:8px; background-color:var(--panel); color:var(--ink2); font-size:12px; font-weight:700; cursor:pointer;"
+                                data-log-id="@r.Id" data-amount="@r.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-date="@r.PaymentDate.ToString("yyyy-MM-dd")" data-note="@r.Note" data-purpose="@((int)r.Purpose)">تعديل</button>
+                        <form asp-controller="Plans" asp-action="DeletePayment" asp-route-id="@Model.Id" asp-route-logId="@r.Id" method="post" class="inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" data-confirm-delete="تأكيد؟" style="padding:6px 11px; border:0; border-radius:8px; background-color:rgba(239,68,68,.12); color:var(--danger); font-size:12px; font-weight:700; cursor:pointer;">حذف</button>
+                        </form>
+                    </div>
+                </div>
+                rowIndex--;
+            }
+            @if (Model.Payments.Count == 0)
+            {
+                <div style="padding:34px; text-align:center; color:var(--muted); font-size:13.5px; font-weight:600;">لا توجد دفعات مسجّلة بعد — ابدأ بتسجيل أول عملية.</div>
+            }
+        </div>
+        @if (remainingPayments.Count > 0)
+        {
+            <div style="padding:14px 18px;">
+                <button type="button" id="showMorePaymentsBtn" style="width:100%; padding:11px; border:1px dashed var(--line); border-radius:10px; background:transparent; color:var(--ink2); font-size:13px; font-weight:700; cursor:pointer;">عرض كل السجل (@Model.Payments.Count عملية)</button>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Edit plan modal -->
+@{ var openEditPlan = ViewData["OpenEditPlanModal"] is true; }
+<div id="editPlanModal" style="position:fixed; inset:0; background-color:rgba(8,15,28,.62); z-index:50; align-items:center; justify-content:center; padding:24px;" class="@(openEditPlan ? "flex" : "hidden")">
+    <div class="pop-in" style="width:100%; max-width:520px; background-color:var(--panel); border:1px solid var(--line); border-radius:18px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; gap:18px;">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div>
+                <div style="font-family:'Cairo',sans-serif; font-size:21px; font-weight:800;">تعديل الخطة</div>
+                <div style="font-size:13px; color:var(--muted); margin-top:5px;">عدّل بيانات الخطة، وسيُعاد حساب كل الأرقام والرسوم تلقائياً.</div>
+            </div>
+            <button type="button" id="closeEditPlanBtn" style="margin-right:auto; width:32px; height:32px; flex:0 0 auto; border:0; border-radius:9px; background-color:var(--chip); color:var(--ink2); font-size:16px; font-weight:700; cursor:pointer;" aria-label="إغلاق">✕</button>
+        </div>
+
+        <form asp-controller="Plans" asp-action="EditPlan" asp-route-id="@Model.Id" method="post" novalidate data-plan-form>
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-sm mb-3" style="color:var(--danger);"></div>
+
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:14px;">
+                اسم الخطة
+                <input asp-for="EditPlan.Name" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; outline:none;" />
+                <span asp-validation-for="EditPlan.Name" class="text-xs" style="color:var(--danger);"></span>
+            </label>
+
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+                <div style="font-size:12.5px; font-weight:600; color:var(--ink2);">نوع الخطة</div>
+                <div style="display:flex; gap:4px; padding:4px; background-color:var(--chip); border-radius:11px;">
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="EditPlan.Type" value="@PlanType.Save" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#10B981" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">ادخار</span>
+                    </label>
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="EditPlan.Type" value="@PlanType.Debt" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#6366F1" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">سداد دين</span>
+                    </label>
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="EditPlan.Type" value="@PlanType.Invest" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#0EA5E9" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">استثمار</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    المبلغ المستهدف (ريال)
+                    <input asp-for="EditPlan.Target" type="number" step="0.01" min="0.01" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="EditPlan.Target" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    عدد الدفعات (اختياري)
+                    <input asp-for="EditPlan.Slots" type="number" min="0" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="EditPlan.Slots" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    مبلغ الدفعة الشهرية (اختياري)
+                    <input asp-for="EditPlan.InstallmentAmount" type="number" step="0.01" min="0.01" placeholder="يُحسب تلقائيًا إن تُرك فارغًا" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="EditPlan.InstallmentAmount" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    تاريخ البداية
+                    <input asp-for="EditPlan.StartDate" type="date" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="EditPlan.StartDate" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    تاريخ الاستحقاق
+                    <input asp-for="EditPlan.EndDate" type="date" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                </label>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:18px;">
+                <div style="font-size:12.5px; font-weight:600; color:var(--ink2);">لون الخطة</div>
+                <input type="hidden" asp-for="EditPlan.ColorHex" class="color-hex-input" />
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    @{ var editPresetColors = new[] { "#10B981", "#6366F1", "#0EA5E9", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#14B8A6", "#84CC16", "#F97316" }; }
+                    @foreach (var c in editPresetColors)
+                    {
+                        <button type="button" class="color-swatch" style="width:36px; height:36px; border-radius:10px; cursor:pointer; background-color:@c; border-width:2px; border-style:solid;" data-color="@c" aria-label="اختيار اللون @c"></button>
+                    }
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn-primary" style="flex:1; padding:13px; font-size:14.5px; font-weight:800; border:0; cursor:pointer;">حفظ التعديلات</button>
+                <button type="button" id="cancelEditPlanBtn" style="padding:13px 18px; border:1px solid var(--line); border-radius:11px; background-color:var(--panel); color:var(--muted); font-size:13.5px; font-weight:700; cursor:pointer;">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit payment modal -->
+<div id="editPaymentModal" class="hidden" style="position:fixed; inset:0; background-color:rgba(8,15,28,.62); z-index:50; align-items:center; justify-content:center; padding:24px;">
+    <div class="pop-in card" style="width:100%; max-width:420px; padding:24px; display:flex; flex-direction:column; gap:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="font-family:'Cairo',sans-serif; font-size:18px; font-weight:800;">تعديل عملية مسجّلة</div>
+            <button type="button" id="closeEditPaymentBtn" style="width:32px; height:32px; border:0; border-radius:9px; background-color:var(--chip); color:var(--ink2); font-size:16px; font-weight:700; cursor:pointer;" aria-label="إغلاق">✕</button>
+        </div>
+        <form id="editPaymentForm" asp-controller="Plans" asp-action="EditPayment" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="logId" id="editLogId" />
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:12px;">
+                المبلغ (ريال)
+                <input type="number" step="0.01" min="0.01" name="Amount" id="editAmount" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+            </label>
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:12px;">
+                التاريخ
+                <input type="date" name="PaymentDate" id="editDate" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+            </label>
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:@(isDebtPlan ? "12px" : "18px");">
+                ملاحظة
+                <input type="text" name="Note" id="editNote" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; outline:none;" />
+            </label>
+            @if (isDebtPlan)
+            {
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:18px;">
+                    نوع الدفعة
+                    <select name="Purpose" id="editPurpose" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;">
+                        <option value="@((int)PlanLogPurpose.BillPayment)">سداد الفاتورة</option>
+                        <option value="@((int)PlanLogPurpose.AdvancePayment)">سداد السلفة</option>
+                        <option value="@((int)PlanLogPurpose.Reserved)">إدخال / حجز مستقبلي</option>
+                    </select>
+                </label>
+            }
+            <button type="submit" class="btn-primary" style="width:100%; padding:13px; font-size:14.5px; font-weight:800; border:0; cursor:pointer;">حفظ التعديل</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var showMoreBtn = document.getElementById("showMorePaymentsBtn");
+        if (showMoreBtn) {
+            showMoreBtn.addEventListener("click", function () {
+                document.querySelectorAll(".extra-payment-row").forEach(function (row) { row.classList.remove("hidden"); });
+                showMoreBtn.classList.add("hidden");
+            });
+        }
+
+        var editModal = document.getElementById("editPaymentModal");
+        document.querySelectorAll(".edit-payment-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.getElementById("editLogId").value = btn.dataset.logId;
+                document.getElementById("editAmount").value = btn.dataset.amount;
+                document.getElementById("editDate").value = btn.dataset.date;
+                document.getElementById("editNote").value = btn.dataset.note || "";
+                var editPurposeSelect = document.getElementById("editPurpose");
+                if (editPurposeSelect && btn.dataset.purpose !== undefined) editPurposeSelect.value = btn.dataset.purpose;
+                editModal.classList.remove("hidden");
+                editModal.classList.add("flex");
+            });
+        });
+        var closeEditBtn = document.getElementById("closeEditPaymentBtn");
+        if (closeEditBtn) {
+            closeEditBtn.addEventListener("click", function () {
+                editModal.classList.add("hidden");
+                editModal.classList.remove("flex");
+            });
+        }
+        if (editModal) {
+            editModal.addEventListener("click", function (e) {
+                if (e.target === editModal) {
+                    editModal.classList.add("hidden");
+                    editModal.classList.remove("flex");
+                }
+            });
+        }
+    })();
+</script>
+
+<partial name="_ValidationScriptsPartial" />

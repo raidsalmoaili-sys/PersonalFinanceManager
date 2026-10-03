@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #F4F6FA;
+  --panel: #FFFFFF;
+  --ink: #0F172A;
+  --ink2: #334155;
+  --muted: #64748B;
+  --line: #E3E8F0;
+  --chip: #F1F5F9;
+  --nav: #0F172A;
+  --navink: #94A3B8;
+  --navactive: #1E293B;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 10px 30px rgba(15, 23, 42, .06);
+  --save: #10B981;
+  --saveSoft: #D1FAE5;
+  --debt: #6366F1;
+  --debtSoft: #E0E7FF;
+  --danger: #EF4444;
+
+  --font-plex: "IBM Plex Sans Arabic", sans-serif;
+  --font-cairo: "Cairo", sans-serif;
+  --font-tajawal: "Tajawal", sans-serif;
+  --font-family: var(--font-plex);
+}
+
+html.dark {
+  --bg: #070D18;
+  --panel: #101A2B;
+  --ink: #E9EFF8;
+  --ink2: #C7D3E3;
+  --muted: #8CA0B8;
+  --line: #1D2B42;
+  --chip: #17233A;
+  --nav: #0A1223;
+  --navink: #8CA0B8;
+  --navactive: #17233A;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 12px 32px rgba(0, 0, 0, .35);
+  --saveSoft: #064E3B;
+  --debtSoft: #312E81;
+}
+
+html.font-cairo {
+  --font-family: var(--font-cairo);
+}
+
+html.font-tajawal {
+  --font-family: var(--font-tajawal);
+}
+
+@keyframes pfmIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pfmPop {
+  from { opacity: 0; transform: scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-family);
+  }
+}
+
+@layer components {
+  .card {
+    background-color: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .chip {
+    background-color: var(--chip);
+    border-radius: 10px;
+  }
+
+  .btn-primary {
+    background-color: var(--nav);
+    color: #fff;
+    border-radius: 11px;
+    box-shadow: var(--shadow);
+  }
+
+  .progress-track {
+    background-color: var(--chip);
+    border-radius: 999px;
+  }
+
+  .input-field {
+    background-color: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 10px;
+  }
+
+  .auth-tab-btn,
+  .chart-toggle-btn {
+    color: var(--muted);
+  }
+
+  .auth-tab-active,
+  .chart-toggle-active {
+    background-color: var(--panel);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+  }
+
+  .color-swatch {
+    border-color: transparent;
+  }
+
+  .color-swatch.color-swatch-selected {
+    border-color: var(--ink);
+  }
+
+  .fade-in {
+    animation: pfmIn .3s ease both;
+  }
+
+  .pop-in {
+    animation: pfmPop .18s ease both;
+  }
+}

@@ -1,0 +1,95 @@
+@model CreatePlanViewModel
+@{
+    var openModal = ViewData["OpenCreateModal"] is true;
+}
+
+<div id="createPlanModal" style="position:fixed; inset:0; background-color:rgba(8,15,28,.62); z-index:50; align-items:center; justify-content:center; padding:24px;" class="@(openModal ? "flex" : "hidden")">
+    <div class="pop-in" style="width:100%; max-width:520px; background-color:var(--panel); border:1px solid var(--line); border-radius:18px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; gap:18px;">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div>
+                <div style="font-family:'Cairo',sans-serif; font-size:21px; font-weight:800;">خطة مالية جديدة</div>
+                <div style="font-size:13px; color:var(--muted); margin-top:5px;">حدد نوع الخطة وهدفها، وستحصل على لوحة تتبع كاملة خاصة بها.</div>
+            </div>
+            <button type="button" id="closeCreatePlanBtn" style="margin-right:auto; width:32px; height:32px; flex:0 0 auto; border:0; border-radius:9px; background-color:var(--chip); color:var(--ink2); font-size:16px; font-weight:700; cursor:pointer;" aria-label="إغلاق">✕</button>
+        </div>
+
+        <form asp-controller="Plans" asp-action="Create" method="post" novalidate data-plan-form>
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-sm mb-3" style="color:var(--danger);"></div>
+
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:14px;">
+                اسم الخطة
+                <input asp-for="Name" placeholder="مثال: نظام ادخار 200 ريال" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; outline:none;" />
+                <span asp-validation-for="Name" class="text-xs" style="color:var(--danger);"></span>
+            </label>
+
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+                <div style="font-size:12.5px; font-weight:600; color:var(--ink2);">نوع الخطة</div>
+                <div style="display:flex; gap:4px; padding:4px; background-color:var(--chip); border-radius:11px;">
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="Type" value="@PlanType.Save" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#10B981" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">ادخار</span>
+                    </label>
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="Type" value="@PlanType.Debt" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#6366F1" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">سداد دين</span>
+                    </label>
+                    <label style="flex:1;">
+                        <input type="radio" asp-for="Type" value="@PlanType.Invest" class="hidden peer" />
+                        <span class="plan-type-option" data-color="#0EA5E9" style="display:block; text-align:center; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);">استثمار</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    المبلغ المستهدف (ريال)
+                    <input asp-for="Target" type="number" step="0.01" min="0.01" placeholder="73000" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="Target" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    عدد الدفعات (اختياري)
+                    <input asp-for="Slots" type="number" min="0" placeholder="365" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="Slots" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    مبلغ الدفعة الشهرية (اختياري)
+                    <input asp-for="InstallmentAmount" type="number" step="0.01" min="0.01" placeholder="يُحسب تلقائيًا إن تُرك فارغًا" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="InstallmentAmount" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    تاريخ البداية
+                    <input asp-for="StartDate" type="date" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                    <span asp-validation-for="StartDate" class="text-xs" style="color:var(--danger);"></span>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);">
+                    تاريخ الاستحقاق
+                    <input asp-for="EndDate" type="date" style="width:100%; box-sizing:border-box; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background-color:var(--bg); color:var(--ink); font-size:14px; font-weight:600; outline:none;" />
+                </label>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:18px;">
+                <div style="font-size:12.5px; font-weight:600; color:var(--ink2);">لون الخطة</div>
+                <input type="hidden" asp-for="ColorHex" id="colorHexInput" class="color-hex-input" />
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    @{ var presetColors = new[] { "#10B981", "#6366F1", "#0EA5E9", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#14B8A6", "#84CC16", "#F97316" }; }
+                    @foreach (var c in presetColors)
+                    {
+                        <button type="button" class="color-swatch" style="width:36px; height:36px; border-radius:10px; cursor:pointer; background-color:@c; border-width:2px; border-style:solid;" data-color="@c" aria-label="اختيار اللون @c"></button>
+                    }
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn-primary" style="flex:1; padding:13px; font-size:14.5px; font-weight:800; border:0; cursor:pointer;">إنشاء الخطة</button>
+                <button type="button" id="cancelCreatePlanBtn" style="padding:13px 18px; border:1px solid var(--line); border-radius:11px; background-color:var(--panel); color:var(--muted); font-size:13.5px; font-weight:700; cursor:pointer;">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>

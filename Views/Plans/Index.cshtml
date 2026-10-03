@@ -1,0 +1,180 @@
+@model OverviewViewModel
+@{
+    ViewData["Title"] = "النظرة العامة التنفيذية";
+    ViewData["Crumb"] = "الإدارة المالية · تقارير";
+    ViewData["SidebarPlans"] = Model.Plans;
+    ViewData["NewPlanModel"] = Model.NewPlan;
+}
+
+<div class="fade-in" style="display:flex; flex-direction:column; gap:18px;">
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;">
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">إجمالي الأهداف المالية</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:800; letter-spacing:-.5px;">@Model.TotalTarget.ToString("N0") <span style="font-size:14px; font-weight:600; color:var(--muted);">ريال</span></div>
+            <div style="font-size:12.5px; color:var(--muted); font-weight:600;">موزعة على @Model.Plans.Count(p => !p.IsPaused) خطة نشطة</div>
+        </div>
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">إجمالي المبالغ المحققة</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:800; color:var(--save); letter-spacing:-.5px;">@Model.TotalAchieved.ToString("N0") <span style="font-size:14px; font-weight:600; color:var(--muted);">ريال</span></div>
+            <div style="font-size:12.5px; color:var(--muted); font-weight:600;">@Model.TxCount عملية مسجّلة</div>
+        </div>
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">إجمالي المتبقي</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:800; letter-spacing:-.5px;">@Model.TotalRemaining.ToString("N0") <span style="font-size:14px; font-weight:600; color:var(--muted);">ريال</span></div>
+            <div style="font-size:12.5px; color:var(--muted); font-weight:600;">متبقي للوصول إلى كل الأهداف</div>
+        </div>
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:13px; color:var(--muted); font-weight:600;">نسبة الإنجاز العام</div>
+            <div style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:800; letter-spacing:-.5px;">@Model.OverallPercent<span style="font-size:16px;">%</span></div>
+            <div class="progress-track" style="height:9px; overflow:hidden;">
+                <div style="height:100%; width:@(Model.OverallPercent)%; border-radius:999px; background:linear-gradient(90deg,var(--debt),var(--save));"></div>
+            </div>
+        </div>
+        @if (Model.TotalReserved > 0)
+        {
+            <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+                <div style="font-size:13px; color:var(--muted); font-weight:600;">إجمالي المبالغ المحجوزة</div>
+                <div style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:800; color:#F59E0B; letter-spacing:-.5px;">@Model.TotalReserved.ToString("N0") <span style="font-size:14px; font-weight:600; color:var(--muted);">ريال</span></div>
+                <div style="font-size:12.5px; color:var(--muted); font-weight:600;">محجوزة لدفعات مستقبلية ولم تُخصم بعد من أي دين</div>
+            </div>
+        }
+    </div>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:14px;" class="max-lg:!grid-cols-1">
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:16px; min-width:0;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:15px; font-weight:700;">تقدّم الخطط شهرياً</div>
+                    <div style="font-size:12.5px; color:var(--muted); margin-top:3px;">مجموع المبالغ المسجّلة في كل خطة (ريال)</div>
+                </div>
+                <div style="margin-right:auto; display:flex; gap:4px; padding:3px; background-color:var(--chip); border-radius:9px;">
+                    <button type="button" id="chartTypeBar" class="chart-toggle-btn chart-toggle-active" style="padding:7px 12px; border:0; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">أعمدة</button>
+                    <button type="button" id="chartTypeArea" class="chart-toggle-btn" style="padding:7px 12px; border:0; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">منطقة</button>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                @foreach (var s in Model.MonthlyChart.Series)
+                {
+                    <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink2);"><span style="width:10px; height:10px; border-radius:3px; background-color:@s.ColorHex;"></span>@s.Name</div>
+                }
+            </div>
+
+            @if (!Model.MonthlyChart.HasData)
+            {
+                <div style="display:flex; align-items:center; justify-content:center; height:200px; font-size:13.5px; color:var(--muted);">لا توجد دفعات مسجّلة بعد لعرض الرسم الشهري</div>
+            }
+            else
+            {
+                <div id="chartBar" style="display:flex; align-items:flex-end; gap:10px; height:240px; padding-top:6px; border-bottom:1px solid var(--line);">
+                    @foreach (var m in Model.MonthlyChart.Months)
+                    {
+                        <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%;">
+                            <div style="flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:4px;">
+                                @foreach (var b in m.Bars)
+                                {
+                                    <div title="@b.Tooltip" style="flex:1; max-width:24px; height:@b.HeightPercent; min-height:3px; border-radius:5px 5px 0 0; background-color:@b.ColorHex;"></div>
+                                }
+                            </div>
+                            <div style="font-size:11.5px; color:var(--muted); font-weight:600; white-space:nowrap;">@m.Label</div>
+                        </div>
+                    }
+                </div>
+
+                <div id="chartArea" class="hidden" style="display:flex; flex-direction:column; gap:8px;">
+                    <svg viewBox="0 0 100 44" preserveAspectRatio="none" style="width:100%; height:240px; transform:scaleX(-1);">
+                        @foreach (var s in Model.MonthlyChart.Series)
+                        {
+                            <g>
+                                <path d="@s.AreaFillPath" fill="@s.SoftColorCss"></path>
+                                <path d="@s.AreaLinePath" fill="none" stroke="@s.ColorHex" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+                            </g>
+                        }
+                    </svg>
+                    <div style="display:flex; gap:10px; border-top:1px solid var(--line); padding-top:8px;">
+                        @foreach (var m in Model.MonthlyChart.Months)
+                        {
+                            <div style="flex:1; text-align:center; font-size:11.5px; color:var(--muted); font-weight:600; white-space:nowrap;">@m.Label</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="card" style="padding:18px; display:flex; flex-direction:column; gap:16px; min-width:0;">
+            <div>
+                <div style="font-size:15px; font-weight:700;">توزيع الأهداف المالية</div>
+                <div style="font-size:12.5px; color:var(--muted); margin-top:3px;">المنجز والمتبقي من كل خطة</div>
+            </div>
+            <div style="display:grid; place-items:center; padding:6px 0;">
+                <div style="position:relative; width:188px; height:188px; border-radius:50%; background:@Model.DonutGradientCss;">
+                    <div style="position:absolute; inset:27%; border-radius:50%; background-color:var(--panel); display:grid; place-items:center; text-align:center;">
+                        <div>
+                            <div style="font-family:'Cairo',sans-serif; font-size:24px; font-weight:800;">@Model.OverallPercent%</div>
+                            <div style="font-size:11px; color:var(--muted); font-weight:600;">منجز</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.DonutLegend.Count == 0)
+            {
+                <div style="text-align:center; font-size:13px; color:var(--muted);">لا توجد خطط بعد</div>
+            }
+            else
+            {
+                <div style="display:flex; flex-direction:column; gap:9px;">
+                    @foreach (var s in Model.DonutLegend)
+                    {
+                        <div style="display:flex; align-items:center; gap:9px; font-size:12.5px;">
+                            <span style="width:10px; height:10px; flex:0 0 auto; border-radius:3px; background-color:@s.ColorCss;"></span>
+                            <span style="color:var(--ink2); font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@s.Label</span>
+                            <span style="margin-right:auto; font-weight:700; color:var(--ink); white-space:nowrap;">@s.ValueF</span>
+                            <span style="color:var(--muted); font-weight:600; min-width:38px; text-align:left;">@s.Percent%</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;">
+        @foreach (var p in Model.Plans)
+        {
+            <a href="@Url.Action("Details", "Plans", new { id = p.Id })" style="cursor:pointer; text-decoration:none; color:inherit; background-color:var(--panel); border:1px solid var(--line); border-top:3px solid @p.ColorHex; border-radius:14px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px; opacity:@(p.IsPaused ? "0.6" : "1");">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:38px; height:38px; flex:0 0 auto; border-radius:11px; background-color:@(p.ColorHex)22; color:@p.ColorHex; display:grid; place-items:center; font-size:17px; font-weight:800;">@p.IconGlyph</div>
+                    <div style="min-width:0;">
+                        <div style="font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:8px;">
+                            <span style="overflow:hidden; text-overflow:ellipsis;">@p.Name</span>
+                            @if (p.IsPaused)
+                            {
+                                <span style="flex:0 0 auto; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; background-color:var(--chip); color:var(--muted);">موقوفة</span>
+                            }
+                        </div>
+                        <div style="font-size:12.5px; color:var(--muted); margin-top:2px;">@p.Sub</div>
+                    </div>
+                    <div style="margin-right:auto; font-size:20px; color:var(--muted);">‹</div>
+                </div>
+                <div class="progress-track" style="height:8px; overflow:hidden;"><div style="height:100%; width:@(p.PercentComplete)%; background-color:@p.ColorHex; border-radius:999px;"></div></div>
+                <div style="display:flex; gap:22px; flex-wrap:wrap;">
+                    <div><div style="font-size:11.5px; color:var(--muted); font-weight:600;">@p.DoneLabel</div><div style="font-weight:800; font-size:17px; color:@p.ColorHex;">@p.Achieved.ToString("N0")</div></div>
+                    <div><div style="font-size:11.5px; color:var(--muted); font-weight:600;">المتبقي</div><div style="font-weight:800; font-size:17px;">@p.Remaining.ToString("N0")</div></div>
+                    <div><div style="font-size:11.5px; color:var(--muted); font-weight:600;">الإنجاز</div><div style="font-weight:800; font-size:17px;">@p.PercentComplete%</div></div>
+                    @if (p.Reserved > 0)
+                    {
+                        <div><div style="font-size:11.5px; color:var(--muted); font-weight:600;">محجوز</div><div style="font-weight:800; font-size:17px; color:#F59E0B;">@p.Reserved.ToString("N0")</div></div>
+                    }
+                </div>
+            </a>
+        }
+
+        <button type="button" id="openCreatePlanBtn" style="cursor:pointer; background:transparent; border:1.5px dashed var(--line); border-radius:14px; padding:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--muted); min-height:170px;">
+            <div style="width:42px; height:42px; border-radius:12px; background-color:var(--chip); display:grid; place-items:center; font-size:20px; font-weight:800; color:var(--ink2);">＋</div>
+            <div style="font-size:14.5px; font-weight:700; color:var(--ink2);">إضافة خطة مالية جديدة</div>
+            <div style="font-size:12.5px;">ادخار · سداد دين · استثمار</div>
+        </button>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

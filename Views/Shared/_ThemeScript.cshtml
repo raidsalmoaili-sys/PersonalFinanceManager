@@ -1,0 +1,13 @@
+<script>
+  (function () {
+    try {
+      var theme = localStorage.getItem('pfm-theme');
+      if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+      var font = localStorage.getItem('pfm-font');
+      if (font === 'cairo') document.documentElement.classList.add('font-cairo');
+      else if (font === 'tajawal') document.documentElement.classList.add('font-tajawal');
+    } catch (e) { }
+  })();
+</script>
